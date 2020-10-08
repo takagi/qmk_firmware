@@ -55,14 +55,14 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  * |------+------+------+------+------+------+------+------+------+------+------+------|
  * | Shift|   Z  |   X  |   C  |   V  |   B  |   N  |   M  |   ,  |   .  |   /  |  '   |
  * |------+------+------+------+------+------+------+------+------+------+------+------|
- * |      | Caps | Alt  | GUI  |Lower |    Space    |Raise | Left | Down |  Up  |Right |
+ * | Caps | Ctrl | Alt  | GUI  |Lower |    Space    |Raise | Left | Down |  Up  |Right |
  * `-----------------------------------------------------------------------------------'
  */
 [_BASE] = LAYOUT(
-    KC_TAB,  KC_Q,    KC_W,    KC_E,    KC_R,    KC_T, KC_Y, KC_U,    KC_I,    KC_O,    KC_P,    KC_BSPC,
-    LCT_ESC, KC_A,    KC_S,    MOUSE_D, KC_F,    KC_G, KC_H, KC_J,    KC_K,    KC_L,    KC_SCLN, KC_ENT,
-    KC_LSFT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B, KC_N, KC_M,    KC_COMM, KC_DOT,  KC_SLSH, MT(MOD_RSFT, KC_QUOT),
-    KC_NO,   KC_CAPS, KC_LALT, KC_LGUI, LO_EISU,   KC_SPC,   RA_KANA, KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT
+    KC_TAB,   KC_Q,    KC_W,    KC_E,    KC_R,    KC_T, KC_Y, KC_U,    KC_I,    KC_O,    KC_P,    KC_BSPC,
+    LCT_ESC,  KC_A,    KC_S,    MOUSE_D, KC_F,    KC_G, KC_H, KC_J,    KC_K,    KC_L,    KC_SCLN, KC_ENT,
+    KC_LSFT,  KC_Z,    KC_X,    KC_C,    KC_V,    KC_B, KC_N, KC_M,    KC_COMM, KC_DOT,  KC_SLSH, MT(MOD_RSFT, KC_QUOT),
+    KC_CAPS, KC_RCTRL, KC_LALT, KC_LGUI, LO_EISU,   KC_SPC,   RA_KANA, KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT
 ),
 
 /* Lower
@@ -109,10 +109,10 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 ),
 
 [_MOUSE] = LAYOUT(
-    _______, _______, _______, _______, _______, _______, _______, KC_BTN1, KC_MS_U, KC_BTN2, _______, _______,
-    _______, _______, WHEEL,   _______, KC_ACL1, KC_ACL2, _______, KC_MS_L, KC_MS_D, KC_MS_R, _______, _______,
-    _______, _______, _______, _______, _______, _______, _______, _______, KC_BTN3, KC_BTN4, _______, _______,
-    _______, _______, _______, _______, _______,     _______,      _______, _______, _______, _______, _______
+    _______,  _______, _______, _______, _______, _______, _______, KC_BTN1, KC_MS_U, KC_BTN2, _______, _______,
+    KC_LCTRL, _______, WHEEL,   _______, KC_ACL1, KC_ACL2, _______, KC_MS_L, KC_MS_D, KC_MS_R, _______, _______,
+    _______,  _______, _______, _______, _______, _______, _______, _______, KC_BTN3, KC_BTN4, _______, _______,
+    _______,  _______, _______, _______, _______,     _______,      _______, _______, _______, _______, _______
 ),
 
 [_WHEEL] = LAYOUT(
@@ -125,10 +125,14 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 };
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-    static bool key_pressed;  // permissive hold
+    static bool layer_key_pressed, another_key_pressed;  // permissive hold
 
     // Check if another key is pressed after a possible tap begins
-    if (record->event.pressed) key_pressed = true;
+    if (record->event.pressed) {
+        if (layer_key_pressed) {
+            another_key_pressed = true;
+        }
+    }
 
     switch (keycode) {
         case QMKBEST:
@@ -150,30 +154,32 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         case RA_KANA: {
             static uint16_t timer_start;
             if (record->event.pressed) {
-                timer_start = timer_read();
-                key_pressed = false;
+                layer_key_pressed = true;
             } else {
                 if (timer_elapsed(timer_start) < TAPPING_TERM) {
-                    if (!key_pressed) {
+                    if (!another_key_pressed) {
                         register_code(KC_HENK);
                         unregister_code(KC_HENK);
                     }
                 }
+                layer_key_pressed = false;
+                another_key_pressed = false;
             }
             break;
         }
         case LO_EISU: {
             static uint16_t timer_start;
             if (record->event.pressed) {
-                timer_start = timer_read();
-                key_pressed = false;
+                layer_key_pressed = true;
             } else {
                 if (timer_elapsed(timer_start) < TAPPING_TERM) {
-                    if (!key_pressed) {
+                    if (!another_key_pressed) {
                         register_code(KC_MHEN);
                         unregister_code(KC_MHEN);
                     }
                 }
+                layer_key_pressed = false;
+                another_key_pressed = false;
             }
             break;
         }
@@ -191,4 +197,15 @@ layer_state_t layer_state_set_user(layer_state_t state) {
         break;
     }
     return state;
+}
+
+bool get_hold_on_other_key_press(uint16_t keycode, keyrecord_t *record) {
+    switch (keycode) {
+        case LO_EISU:
+        case RA_KANA:
+        case LCT_ESC:
+            return true;
+        default:
+            return false;
+    }
 }
