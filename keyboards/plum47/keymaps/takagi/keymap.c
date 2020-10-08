@@ -154,3 +154,13 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     }
     return state;
 }
+
+bool get_hold_on_other_key_press(uint16_t keycode, keyrecord_t *record) {
+    switch (keycode) {
+        case LO_EISU:
+        case RA_KANA:
+            return true;
+        default:
+            return false;
+    }
+}
