@@ -14,6 +14,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include QMK_KEYBOARD_H
+#include "action_tapping.h"  // for TAPPING_TERM
+
+// To flash: make plum47:takagi:flash
 
 // Defines names for use in layer keycodes and the keymap
 enum layer_names {
@@ -122,6 +125,11 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 };
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    static bool key_pressed;  // permissive hold
+
+    // Check if another key is pressed after a possible tap begins
+    if (record->event.pressed) key_pressed = true;
+
     switch (keycode) {
         case QMKBEST:
             if (record->event.pressed) {
@@ -139,6 +147,36 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 // when keycode QMKURL is released
             }
             break;
+        case RA_KANA: {
+            static uint16_t timer_start;
+            if (record->event.pressed) {
+                timer_start = timer_read();
+                key_pressed = false;
+            } else {
+                if (timer_elapsed(timer_start) < TAPPING_TERM) {
+                    if (!key_pressed) {
+                        register_code(KC_HENK);
+                        unregister_code(KC_HENK);
+                    }
+                }
+            }
+            break;
+        }
+        case LO_EISU: {
+            static uint16_t timer_start;
+            if (record->event.pressed) {
+                timer_start = timer_read();
+                key_pressed = false;
+            } else {
+                if (timer_elapsed(timer_start) < TAPPING_TERM) {
+                    if (!key_pressed) {
+                        register_code(KC_MHEN);
+                        unregister_code(KC_MHEN);
+                    }
+                }
+            }
+            break;
+        }
     }
     return true;
 }
